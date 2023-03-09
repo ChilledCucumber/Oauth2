@@ -1,0 +1,253 @@
+====== Setup migration machine (centos 7) to Imapsync 2.23 ======
+ 
+First install access to the Epel repository via yum:
+yum install epel-release
+
+Then install imapsync and its dependencies:
+yum install imapsync
+
+After installing imapsync, it should be able to work on your system.
+A good test that shows also the basic example:
+Imapsync
+
+A live test:
+imapsync --testslive --tls1 --ssl2
+
+Unit tests:
+imapsync --tests 
+ 
+In order to install the latest imapsync I suggest the following process:
+Install the epel imapsync 1.727 release via yum like mentioned above.
+It will install many needed packages, Perl itself and Perl modules 
+for release 1.727. The latest imapsync needs more Perl modules.
+
+Then:
+yum install perl-App-cpanminus \
+perl-Dist-CheckConflicts \
+perl-HTML-Parser \
+perl-libwww-perl \
+perl-Module-Implementation \
+perl-Module-ScanDeps \
+perl-Package-Stash \
+perl-Package-Stash-XS \
+perl-PAR-Packer \
+perl-Regexp-Common \
+perl-Sys-MemInfo \
+perl-Test-Fatal \
+perl-Test-Mock-Guard \
+perl-Test-Requires \
+perl-Test-Deep \
+perl-File-Tail \
+perl-Unicode-String \
+perl-Test-NoWarnings \
+perl-Test-Simple \
+perl-Test-Warn \
+perl-Sub-Uplevel \
+perl-Proc-ProcessTable \
+ca-certificates
+
+Also, run the following commands:
+cpanm Encode::IMAPUTF7 
+wget -N https://imapsync.lamiral.info/imapsync
+chmod +x imapsync
+./imapsync --testslive
+
+Now you should have the latest imapsync locally working on Centos 7.
+If you want to install it and replace the old one:
+mv /usr/bin/imapsync /usr/bin/imapsync_old
+cp ./imapsync /usr/bin/imapsync
+imapsync --version
+
+Should give the latest release number instead of 1.727
+(It is 2.23 at the time of this writing)
+
+If you want to install an online imapsync service
+like /X then you also need a recent decent CGI.pm,
+add it with cpanm:
+cpanm CGI 
+ 
+[source: https://imapsync.lamiral.info/INSTALL.d/INSTALL.Centos.txt  ]
+ 
+ 
+====== Install Python 3.9 ======
+
+Step 1: System Package Installation
+Install below pre-requisites:
+sudo yum -y install wget make gcc openssl-devel bzip2-devel
+
+Step 2: Downloading Python 3.9
+Download python setup in tmp location
+cd /tmp/
+wget https://www.python.org/ftp/python/3.9.1/Python-3.9.1.tgz
+
+Step 3: Python 3.9 alternate installation
+tar xzf Python-3.9.1.tgz
+cd Python-3.9.1
+./configure --enable-optimizations
+sudo make altinstall
+sudo ln -sfn /usr/local/bin/python3.9 /usr/bin/python3.9
+sudo ln -sfn /usr/local/bin/pip3.9 /usr/bin/pip3.9
+
+Step 4: Verifying new python & pip version
+python3.9 -V
+Python 3.9.1
+pip3.9 -V
+pip 20.2.3 from /usr/local/lib/python3.9/site-packages/pip (python 3.9)
+NOTE: Ater updating python, there will be 2 python module in machine, to use the newer one, use this syntax
+python3.9 -m pip install --upgrade pip
+python3.9 is the speciied version to be used with 
+ 
+[ source: https://vinodpandey.com/how-to-install-python3-on-centos-7/  ]
+ 
+ 
+ 
+====== Get Authen token ======
+Create API
+Go to portal.azure.com, log in with a Microsoft account (get a free one at outlook.com), then search for "app registration", and add a new registration. On the initial form that appears, put a name like "Mutt", allow any type of account, and put "http://localhost/" as the redirect URI, then more carefully go through each screen: Register new app on azure AD with Web and http://localhost/ as redirect URI   In the app, check information and make sure it is not public
+ 
+ 
+ 
+ 
+Create API permission and grant permissions
+- Microsoft Graph, Delegated, "offline_access"
+- Microsoft Graph, Delegated, "IMAP.AccessAsUser.All" 
+- Microsoft Graph, Delegated, "POP.AccessAsUser.All" 
+- Microsoft Graph, Delegated, "SMTP.Send" - Microsoft Graph, Delegated, "User.Read" 
+ 
+ 
+Create Certification & Secret password (Value) and get the client ID (in overview), set the expiry date to be longer than 3 days
+In this example, they are:
+ababab-abab-abab-abab-0000000000
+ababab~aaaa.bABbababABAb_abBa00
+
+
+Permissions and usage [source:  https://gitlab.com/muttmua/mutt/-/blob/master/contrib/mutt_oauth2.py.README ] 
+Update on type of API [source: https://github.com/pnp/cli-microsoft365/issues/948 ]
+ 
+
+====== Download And use Mutt ======
+Use cd command on linux to change directory to a folder of your choosing
+Download Mutt:
+wget https://gitlab.com/muttmua/mutt/-/raw/master/contrib/mutt_oauth2.py
+
+Open file and change:
+ENCRYPTION_PIPE = ['gpg', '--encrypt', '--recipient', 'YOUR_GPG_IDENTITY']
+DECRYPTION_PIPE = ['gpg', '--decrypt']
+to ->
+ENCRYPTION_PIPE = ['tee']
+DECRYPTION_PIPE = ['tee']
+ 
+        'redirect_uri': 'https://login.microsoftonline.com/common/oauth2/nativeclient',
+to ->
+        'redirect_uri': 'http://localhost/',
+ 
+        'client_id': '',
+        'client_secret': '',
+to ->
+        'client_id': 'ababab-abab-abab-abab-0000000000',
+        'client_secret': 'ababab~aaaa.bABbababABAb_abBa00',
+ 
+
+[source: https://github.com/imapsync/imapsync/issues/250 ]
+ 
+ 
+Run command to authorize (run on linux VM):
+python3.9 mutt_oauth2.py TOKEN_FILENAME2 --verbose --authorize
+
+TOKEN_FILENAME2: is the token file name
+ 
+Type: microsoft
+ 
+Depend on how you connect to the Machine, chose 
+ - "authcode": (for SSH) you paste a complicated URL into a browser, thenmanually extract a "code" parameter from a subsequent URL in thebrowser address bar and paste that back to the script. 
+- "localhostauthcode": (for direct control on lunux VM) you again paste the complicated URL into a browserbut that's it --- the code is automatically extracted from the responserelying on a localhost redirect and temporarily listening on a localhostport. This flow can only be used if the web browser opening the redirectURL sits on the same CentOS machine as where mutt is running, in other words can not be used if you ssh to a remote machine and run mutt on that remote machine while your web browser remains on your localcContOS machine.    [Prefered method]
+- "devicecode": (for direct control on lunux VM or SSH) you go to a simple URL and just enter a short code.
+[ source: https://gitlab.com/muttmua/mutt/-/blob/master/contrib/mutt_oauth2.py.README ]
+ 
+Type in the delegated account (should be the global admin)
+Access the link and login
+You will receive the authcode
+It will generate token file, in this case named TOKEN_FILENAME2 (You should rename it to something else)
+Open it (Should use WinSCP to open) and copy the access token 
+Save it to a text file, in this case TOKEN.txt and return to Imapsync
+ 
+====== Auto Renew Auth token ======
+Prepare the scriptto auto-renew token.
+Create a python file named refresh.py with this script:
+
+****** script start ******
+
+import requests
+import json
+import schedule
+import time
+auth = ("<client_id>", "<client_secret>")
+url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+params = {
+"grant_type":"refresh_token",
+"scope":"https://outlook.office365.com/.default",
+"refresh_token":"<insert-token-taken-from-TOKEN_FILENAME2>"
+}
+def job():
+ret = requests.post(url, auth=auth, data=params)
+print(ret.text.encode('utf8'))
+access_key = ret.json()
+with open("TOKEN.txt", "w") as f:
+f.write(str(access_key['access_token']))
+schedule.every(60).minutes.do(job)
+schedule.every().hour.do(job)
+schedule.every().day.at("10:30").do(job)
+while 1:
+schedule.run_pending()
+time.sleep(1)
+
+******* script end ******
+ 
+Replace the Green high light parts with corresponding information:
+<client_id>	=	Client ID from before
+<client_secret> =	Client Secret from before
+<refresh_token> = 	Refresh token from the TOKEN_FILENAME2 
+<TOKEN.txt> = 	Name of the access token file
+ 
+Use the script
+Use Terminal to run the python script before starting the migration, this is to renew access token every 60 minutes.
+Command:
+python3.9 refresh.py
+
+This will overwrite the TOKEN.txt file with new access token every 60 minutes.
+The refresh token should be ran beforehand to create overlap of new token.
+ 
+====== Run migrate command ======
+To run on the account authenticated:
+
+imapsync --host1 imap.gmail.com  \
+--user1 a12345@gmail.com  \
+--password1  xxx   \
+--ssl1                                \
+--host2 outlook.office365.com   \
+--user2  admin@pcontoso.onmicrosoft.com    \
+--password2  xxx   \
+--oauthaccesstoken2 TOKEN.txt \
+--ssl2 \
+--dry
+ 
+To run on delegated account:
+imapsync --host1 imap.gmail.com  \
+--user1 a12345@gmail.com  \
+--password1  xxx   \
+--ssl1                                \
+--host2 outlook.office365.com   \
+--user2  user@contoso.onmicrosoft.com    \
+--password2  xxx   \
+--authuser2 admin@contoso.onmicrosoft.com  \
+--oauthaccesstoken2 TOKEN.txt \
+--ssl2 \
+--dry
+ 
+oauthaccesstoken1 str : The access token to authenticate with OAUTH2.  
+It will be combined with the --user1 value to form the  string to pass with XOAUTH2 authentication.  
+The password given by --password1 or --passfile1  is ignored. 
+Instead of the access token itself, the value can be a file containing the access token on the first line.   
+If the value is a file, imapsync reads its first line and take this line as the access token. 
+The advantage  of the file is that if the access token changes then  imapsync can read it again when it needs to reconnect  during a run. 
+
