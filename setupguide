@@ -168,8 +168,13 @@ Type in the delegated account (should be the global admin)
 Access the link and login
 You will receive the authcode
 It will generate token file, in this case named TOKEN_FILENAME2 (You should rename it to something else)
-Open it (Should use WinSCP to open) and copy the access token 
-Save it to a text file, in this case TOKEN.txt and return to Imapsync
+
+The TOKEN should looks something like this:
+
+{"registration": "microsoft", "authflow": "localhostauthcode", "email": "admin@contoso.onmicrosoft.com", "access_token": "a_very_long_access_token", "access_token_expiration": "2023-03-07T13:00:22.848049", "refresh_token": "a_very_long_refresh_token"}
+
+Open it (You should use WinSCP to open) and copy the Access Token: a_very_long_access_token
+Save it to a text file, in this case TOKEN.txt and return to Imapsync (copy only the part within the brackets)
  
 ====== Auto Renew Auth token ======
 Prepare the scriptto auto-renew token.
@@ -181,25 +186,32 @@ import requests
 import json
 import schedule
 import time
-auth = ("<client_id>", "<client_secret>")
+
+auth = ("ababab-abab-abab-abab-0000000000", "ababab~aaaa.bABbababABAb_abBa00")
 url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+
 params = {
-"grant_type":"refresh_token",
-"scope":"https://outlook.office365.com/.default",
-"refresh_token":"<insert-token-taken-from-TOKEN_FILENAME2>"
+  "grant_type":"refresh_token",
+  "scope":"https://outlook.office365.com/.default",
+  "refresh_token":"a_very_long_refresh_token"
 }
+
 def job():
-ret = requests.post(url, auth=auth, data=params)
-print(ret.text.encode('utf8'))
-access_key = ret.json()
-with open("TOKEN.txt", "w") as f:
-f.write(str(access_key['access_token']))
+    ret = requests.post(url, auth=auth, data=params)
+    print(ret.text.encode('utf8'))
+    access_key = ret.json()
+    
+    with  open("TOKEN.txt", "w") as f:
+        f.write(str(access_key['access_token']))
+
 schedule.every(60).minutes.do(job)
 schedule.every().hour.do(job)
 schedule.every().day.at("10:30").do(job)
+
 while 1:
-schedule.run_pending()
-time.sleep(1)
+    schedule.run_pending()
+    time.sleep(1)
+
 
 ******* script end ******
  
