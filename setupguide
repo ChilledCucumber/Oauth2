@@ -215,10 +215,10 @@ while 1:
 
 ******* script end ******
  
-Replace the Green high light parts with corresponding information:
-<client_id>	=	Client ID from before
-<client_secret> =	Client Secret from before
-<refresh_token> = 	Refresh token from the TOKEN_FILENAME2 
+Replace the these parts with corresponding information:
+<ababab-abab-abab-abab-0000000000>	=	Client ID from before
+<ababab~aaaa.bABbababABAb_abBa00> =	Client Secret from before
+<a_very_long_refresh_token> = 	Refresh token from the TOKEN_FILENAME2 
 <TOKEN.txt> = 	Name of the access token file
  
 Use the script
